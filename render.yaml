@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: farm-monitor
+    runtime: python
+    plan: starter            # 디스크(SQLite 보관)는 유료 플랜에서만 사용 가능
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 120
+    healthCheckPath: /healthz
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /var/data/data.db
+      - key: APP_USER
+        value: admin
+      - key: APP_PASS
+        sync: false          # 대시보드에서 직접 입력(코드에 넣지 않음)
+      - key: CRAWL_DELAY_SEC
+        value: "3"
+      - key: MAX_PAGES_PER_SITE
+        value: "25"

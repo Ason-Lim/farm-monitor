@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>농축수산 가격 모니터</title>
+<style>
+:root{--bg:#f5f8fa;--fg:#17304a;--card:#fff;--line:#d8e0e8;--accent:#145f98;--ok:#1a7f4b;--warn:#b26a00;--bad:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1720;--fg:#e3ebf3;--card:#17222e;--line:#2b3a4a;--accent:#6db3ec;--ok:#58c68a;--warn:#e7a948;--bad:#f08a82}}
+body{margin:0;padding:20px;font:15px/1.6 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:28px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+table{border-collapse:collapse;width:100%}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--card)}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;border:1px solid var(--line);font-size:13px}
+.ok{color:var(--ok)}.blocked_robots,.blocked_bot,.error{color:var(--bad)}.login_required,.no_products{color:var(--warn)}
+input,select,button{padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
+button{cursor:pointer;background:var(--accent);color:#fff;border:0}
+a{color:var(--accent)}small{opacity:.75}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+</style></head><body>
+<h1>농축수산 가격 모니터</h1>
+<small>비공개 분석용. robots.txt와 봇 차단을 준수하며, 막힌 사이트는 수집하지 않고 상태만 기록합니다.</small>
+
+<h2>수집 상태</h2>
+<div class="row">
+  {% for k,n in counts.items() %}<span class="pill {{k}}">{{ labels.get(k,k) }} {{n}}</span>{% endfor %}
+  <form method="post" action="{{ url_for('run') }}"><button {{ 'disabled' if running }}>{{ '수집 중…' if running else '지금 수집 실행' }}</button></form>
+  <a href="{{ url_for('export') }}">CSV 다운로드</a>
+</div>
+<div class="card"><table>
+<tr><th>업체</th><th>카테고리</th><th>상태</th><th>상세</th><th>페이지</th><th>확인 시각(UTC)</th></tr>
+{% for s in statuses %}<tr><td><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.name }}</a></td><td>{{ s.category }}</td>
+<td class="{{ s.status }}">{{ labels.get(s.status, s.status) }}</td><td>{{ s.detail }}</td><td>{{ s.pages }}</td><td>{{ s.checked_at }}</td></tr>
+{% else %}<tr><td colspan="6">아직 수집 기록이 없습니다. '지금 수집 실행'을 눌러 주세요.</td></tr>{% endfor %}
+</table></div>
+
+<h2>kg당 가격 비교</h2>
+<div class="card"><table>
+<tr><th>카테고리</th><th>업체</th><th>상품 수</th><th>평균(원/kg)</th><th>최저</th><th>최고</th></tr>
+{% for r in perkg %}<tr><td>{{ r.category }}</td><td>{{ r.site }}</td><td>{{ r.n }}</td><td>{{ '{:,.0f}'.format(r.avg_kg) }}</td><td>{{ '{:,.0f}'.format(r.min_kg) }}</td><td>{{ '{:,.0f}'.format(r.max_kg) }}</td></tr>
+{% else %}<tr><td colspan="6">상품명에 kg 규격이 있는 수집 데이터가 아직 없습니다.</td></tr>{% endfor %}
+</table></div>
+
+<h2>수집 상품</h2>
+<form class="row" method="get"><input name="q" value="{{ q }}" placeholder="상품명 검색">
+<select name="cat"><option value="">전체</option>{% for c in ['농산','축산','수산','복합','가공식품'] %}<option {{ 'selected' if cat==c }}>{{ c }}</option>{% endfor %}</select><button>검색</button></form>
+<div class="card" style="max-height:60vh"><table>
+<tr><th>업체</th><th>상품명</th><th>가격</th><th>규격</th><th>수집(UTC)</th></tr>
+{% for p in products %}<tr><td>{{ p.site }}</td><td><a href="{{ p.url }}" target="_blank" rel="noopener noreferrer">{{ p.name }}</a></td>
+<td>{{ '{:,}'.format(p.price) }}원</td><td>{{ p.unit_value|int if p.unit_value }}{{ p.unit or '' }}</td><td>{{ p.fetched_at }}</td></tr>
+{% else %}<tr><td colspan="5">표시할 상품이 없습니다.</td></tr>{% endfor %}
+</table></div>
+<p><small>가격은 공개 페이지에서 정규식으로 추정한 값이라 반드시 원 페이지에서 확인하세요.</small></p>
+</body></html>
